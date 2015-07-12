@@ -6,6 +6,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var partials = require('express-partials');
 var methodOverride = require('method-override');
+var session = require('express-session');
 
 var routes = require('./routes/index');
 
@@ -22,9 +23,43 @@ app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
-app.use(cookieParser());
+app.use(cookieParser('Quiz 2015'));
+app.use(session());
+
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Helpers dinamicos:
+app.use(function(req, res, next) {
+
+  // guardar path en session.redir para despues de login
+  if (!req.path.match(/\/login|\/logout/)) {
+    req.session.redir = req.path;
+  }
+
+  // Hacer visible req.session en las vistas
+  res.locals.session = req.session;
+  next();
+});
+
+
+//Autologout
+app.use(function(req,res,next){
+   if(req.session.user) {
+      var horaActual = new Date();
+      
+      if(req.session.lastTime) {
+          console.log(horaActual.getTime());
+          console.log(req.session.lastTime);
+          if((horaActual.getTime() - req.session.lastTime)/1000 >= 120) {
+            delete req.session.user;
+          }
+      }
+      req.session.lastTime = horaActual.getTime();
+   }
+   next();
+});
+
 
 app.use('/', routes);
 
